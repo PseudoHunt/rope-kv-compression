@@ -1,0 +1,16 @@
+slow pairs (θ·4096 < 2π): i >= 46  (18 of 64)
+
+layer 0: ||C_post_pred - C_post|| / ||C_post|| = 0.0074;  energy share of slow pairs = 0.366
+  rho=0.5: d_meas=0.9997 d_pred=0.9997 c=0.9981 | fast pairs only: d_meas=0.9987 c=0.9979
+  rho=0.25: d_meas=0.9970 d_pred=0.9970 c=0.9891 | fast pairs only: d_meas=0.9918 c=0.9884
+  rho=0.125: d_meas=0.9882 d_pred=0.9881 c=0.9659 | fast pairs only: d_meas=0.9735 c=0.9650
+
+layer 15: ||C_post_pred - C_post|| / ||C_post|| = 0.0368;  energy share of slow pairs = 0.578
+  rho=0.5: d_meas=0.9646 d_pred=0.9632 c=0.9479 | fast pairs only: d_meas=0.9340 c=0.9293
+  rho=0.25: d_meas=0.9207 d_pred=0.9189 c=0.8827 | fast pairs only: d_meas=0.8573 c=0.8444
+  rho=0.125: d_meas=0.8799 d_pred=0.8784 c=0.8215 | fast pairs only: d_meas=0.7904 c=0.7725
+
+layer 31: ||C_post_pred - C_post|| / ||C_post|| = 0.0255;  energy share of slow pairs = 0.571
+  rho=0.5: d_meas=0.9577 d_pred=0.9558 c=0.9415 | fast pairs only: d_meas=0.9207 c=0.9151
+  rho=0.25: d_meas=0.9129 d_pred=0.9108 c=0.8822 | fast pairs only: d_meas=0.8441 c=0.8325
+  rho=0.125: d_meas=0.8752 d_pred=0.8736 c=0.8321 | fast pairs only: d_meas=0.7821 c=0.7664

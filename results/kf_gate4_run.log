@@ -1,0 +1,7 @@
+=== 14:54:08 ppl --arm off --ctx 2048
+{"task": "ppl", "arm": "off", "p": null, "rho": null, "ppl": 6.9424848556518555, "ctx": 2048, "n_chunks": 166, "tokens": 339802, "total_test_tokens": 341469, "seconds": 54}
+=== 14:55:29 ppl --arm off --ctx 2048 --max_chunks 48
+{"task": "ppl", "arm": "off", "p": null, "rho": null, "ppl": 6.8695149421691895, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 21}
+=== 14:56:05 ppl --arm off --ctx 4096
+{"task": "ppl", "arm": "off", "p": null, "rho": null, "ppl": 6.492046356201172, "ctx": 4096, "n_chunks": 83, "tokens": 339885, "total_test_tokens": 341469, "seconds": 70}
+=== 14:57:31 ppl --arm off --ctx 4096 --max_chunks 24
