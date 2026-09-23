@@ -1,0 +1,9 @@
+=== 15:13:05 ppl --arm OPT --p 16 --rho 0.25 --ctx 2048 --max_chunks 48
+{"task": "ppl", "arm": "OPT", "p": 16, "rho": 0.25, "ppl": 7.074898719787598, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 231}
+=== 15:19:38 ppl --arm PR-2n --p 16 --rho 0.25 --ctx 2048 --max_chunks 48
+{"task": "ppl", "arm": "PR-2n", "p": 16, "rho": 0.25, "ppl": 93.18052673339844, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 231}
+=== 15:25:35 ppl --arm OPT --p 16 --rho 0.25 --ctx 2048 --max_chunks 48 --exact_layers 0,1
+{"task": "ppl", "arm": "OPT", "p": 16, "rho": 0.25, "exact_layers": [0, 1], "posthoc": true, "ppl": 6.997280597686768, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 217}
+=== 15:30:52 ppl --arm OPT --p 32 --rho 0.25 --ctx 2048 --max_chunks 48
+{"task": "ppl", "arm": "OPT", "p": 32, "rho": 0.25, "ppl": 6.95621919631958, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 431}
+=== REPRIO DONE 15:40:26

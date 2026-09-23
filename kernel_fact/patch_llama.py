@@ -29,6 +29,7 @@ class KFState:
     mode: str = "factor"  # 'absorbed' | 'factor' (Gate 1-3) | 'fast' (Gate 4)
     rotary: nn.Module = None
     cache_decoded: bool = False  # Gate 4 simulation: cache k̂ = B_h^T c (identical scores; decoded once per key)
+    sink_k: int = 0  # post-hoc SINK-k variant: keys at absolute positions < sink_k are scored with the EXACT path
 
 
 def _qkv(module, h):
@@ -36,9 +37,40 @@ def _qkv(module, h):
     return tuple(proj(h).view(shp).transpose(1, 2) for proj in (module.q_proj, module.k_proj, module.v_proj))
 
 
+def exact_scores(rotary, q, khat, qpos, kpos):
+    """EXACT path: model RoPE on pre-RoPE queries and decoded keys. q [b,n,Tq,dh], khat [b,n,Tk,dh],
+    qpos [b,Tq], kpos [b,Tk] -> [b, n, Tq, Tk] (no causal masking)."""
+    qc, qs = rotary(q, qpos)
+    kc, ks = rotary(khat, kpos)
+    qr, _ = apply_rotary_pos_emb(q, q, qc, qs)
+    _, kr = apply_rotary_pos_emb(khat, khat, kc, ks)
+    return qr @ kr.transpose(-1, -2)
+
+
+def sink_combine(s_kf, s_exact, qpos, kpos, k):
+    """SINK-k: causal keys at absolute positions < k take the EXACT score, all others keep s_kf.
+    s_* [b, n, Tq, Tk], qpos [b, Tq], kpos [b, Tk]."""
+    use = (kpos[:, None, :] < k) & (kpos[:, None, :] <= qpos[:, :, None])  # [b, Tq, Tk]
+    return torch.where(use[:, None], s_exact, s_kf)
+
+
 def kf_attention(module, hidden_states, position_embeddings, attention_mask, position_ids,
                  past_key_value=None, cache_position=None):
     """Returns (o_proj output, attention weights fp32 [b, n, Tq, Tk])."""
+    s, v, b, S = layer_scores(module, hidden_states, position_embeddings, position_ids,
+                              past_key_value, cache_position)
+    s = s * module.scaling
+    if attention_mask is not None:
+        s = s + attention_mask[:, :, :, : s.shape[-1]].float()
+    w = nn.functional.softmax(s, dim=-1, dtype=torch.float32)
+    out = torch.matmul(w.to(v.dtype), v).transpose(1, 2).reshape(b, S, -1)
+    return module.o_proj(out), w
+
+
+def layer_scores(module, hidden_states, position_embeddings, position_ids, past_key_value=None,
+                 cache_position=None):
+    """Unscaled pre-softmax scores [b, n, Tq, Tk] for the module's current KFState (causal -inf
+    already applied on the compressed paths), plus the (cached) values."""
     st = module.kf
     q, k, v = _qkv(module, hidden_states)
     b, n, S, dh = q.shape
@@ -53,27 +85,26 @@ def kf_attention(module, hidden_states, position_embeddings, attention_mask, pos
             k, v = past_key_value.update(k, v, module.layer_idx, {"cache_position": cache_position})
         s = (q.float() @ k.float().transpose(-1, -2))
     elif st.cache_decoded:
-        kf = k.transpose(1, 2).reshape(b, S, n * dh).float()
+        kf = k.transpose(1, 2).reshape(b, S, n * dh).to(st.U.dtype)
         khat = ((kf @ st.U) @ st.U.T).view(b, S, n, dh).transpose(1, 2)  # [b, n, S, dh]
-        key = torch.cat([khat, position_ids.float()[:, None, :, None].expand(b, n, S, 1)], -1)
+        key = torch.cat([khat, position_ids.to(khat.dtype)[:, None, :, None].expand(b, n, S, 1)], -1)
         if past_key_value is not None:
             key, v = past_key_value.update(key, v, module.layer_idx, {"cache_position": cache_position})
         Khat, kpos = key[..., :dh], key[:, 0, :, dh].round().long()
-        qf = q.float()
+        qf = q.to(st.U.dtype)
         if st.method == "exact":
-            qc, qs = st.rotary(qf, position_ids)
-            kc, ks = st.rotary(Khat, kpos)
-            qr, _ = apply_rotary_pos_emb(qf, qf, qc, qs)
-            _, kr = apply_rotary_pos_emb(Khat, Khat, kc, ks)
-            s = qr @ kr.transpose(-1, -2)
-        elif S == 1:
-            s = batched_gather_scores(qf, Khat, st.Phi, st.Gamma, position_ids, kpos)
+            s = exact_scores(st.rotary, qf, Khat, position_ids, kpos)
         else:
-            s = torch.stack([factor_scores_fast(qf[bi], Khat[bi], st.Phi, st.Gamma, position_ids[bi], kpos[bi])
-                             for bi in range(b)])
+            if S == 1:
+                s = batched_gather_scores(qf, Khat, st.Phi, st.Gamma, position_ids, kpos)
+            else:
+                s = torch.stack([factor_scores_fast(qf[bi], Khat[bi], st.Phi, st.Gamma, position_ids[bi], kpos[bi])
+                                 for bi in range(b)])
+            if st.sink_k > 0:
+                s = sink_combine(s, exact_scores(st.rotary, qf, Khat, position_ids, kpos), position_ids, kpos, st.sink_k)
     else:
-        c = k.transpose(1, 2).reshape(b, S, n * dh).float() @ st.U  # [b, S, r]
-        key = torch.cat([c, position_ids.float().unsqueeze(-1)], -1).unsqueeze(1)
+        c = k.transpose(1, 2).reshape(b, S, n * dh).to(st.U.dtype) @ st.U  # [b, S, r]
+        key = torch.cat([c, position_ids.to(c.dtype).unsqueeze(-1)], -1).unsqueeze(1)
         if past_key_value is not None:
             key, v = past_key_value.update(key, v, module.layer_idx, {"cache_position": cache_position})
         r = st.U.shape[1]
@@ -81,27 +112,21 @@ def kf_attention(module, hidden_states, position_embeddings, attention_mask, pos
         B = st.U.view(n, dh, r).transpose(1, 2)  # [n, r, dh]
         s = []
         for bi in range(b):
-            qb, qpos = q[bi].float(), position_ids[bi]
+            qb, qpos = q[bi].to(st.U.dtype), position_ids[bi]
             khat = (C[bi] @ st.U.T).view(-1, n, dh).transpose(0, 1)  # [n, Tk, dh]
             if st.method == "exact":
-                cos, sin = st.rotary(khat, kpos[bi][None])
-                qc, qs = st.rotary(qb, qpos[None])
-                qr, _ = apply_rotary_pos_emb(qb[None], qb[None], qc, qs)
-                _, kr = apply_rotary_pos_emb(khat[None], khat[None], cos, sin)
-                sb = qr[0] @ kr[0].transpose(-1, -2)
-            elif st.mode == "absorbed":
-                sb = absorbed_scores(qb, C[bi], B, st.Phi, st.Gamma, qpos, kpos[bi])
+                sb = exact_scores(st.rotary, qb[None], khat[None], qpos[None], kpos[bi][None])[0]
             else:
-                sb = factor_scores(qb, khat, st.Phi, st.Gamma, qpos, kpos[bi])
+                if st.mode == "absorbed":
+                    sb = absorbed_scores(qb, C[bi], B, st.Phi, st.Gamma, qpos, kpos[bi])
+                else:
+                    sb = factor_scores(qb, khat, st.Phi, st.Gamma, qpos, kpos[bi])
+                if st.sink_k > 0:
+                    se = exact_scores(st.rotary, qb[None], khat[None], qpos[None], kpos[bi][None])
+                    sb = sink_combine(sb[None], se, qpos[None], kpos[bi][None], st.sink_k)[0]
             s.append(sb)
         s = torch.stack(s)
-
-    s = s * module.scaling
-    if attention_mask is not None:
-        s = s + attention_mask[:, :, :, : s.shape[-1]].float()
-    w = nn.functional.softmax(s, dim=-1, dtype=torch.float32)
-    out = torch.matmul(w.to(v.dtype), v).transpose(1, 2).reshape(b, S, -1)
-    return module.o_proj(out), w
+    return s, v, b, S
 
 
 def batched_gather_scores(q, khat, Phi, Gamma, qpos, kpos):

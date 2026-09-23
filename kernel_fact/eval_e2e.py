@@ -26,7 +26,7 @@ ROOT = "/home/jl_fs/rope_equiv"
 LB = f"{CACHE}/longbench"
 
 
-def build_states(model, arm, p, rho):
+def build_states(model, arm, p, rho, exact_layers=()):
     cfg = model.config
     n, dh = cfg.num_attention_heads, cfg.hidden_size // cfg.num_attention_heads
     if arm == "off":
@@ -38,7 +38,7 @@ def build_states(model, arm, p, rho):
     out = []
     for l in range(cfg.num_hidden_layers):
         U = stats[l]["U_pre"][:, :r].float().cuda()
-        if arm == "EXACT":
+        if arm == "EXACT" or l in exact_layers:  # exact_layers: post-hoc variant (EXACT path on those layers)
             out.append(KFState("exact", U=U, mode="fast", cache_decoded=True))
             continue
         name = "NOPE" if arm == "NOPE" else f"{arm}/{p}"
@@ -182,6 +182,7 @@ def main():
     ap.add_argument("--n_gsm", type=int, default=0)
     ap.add_argument("--bs", type=int, default=16)
     ap.add_argument("--n_per", type=int, default=50)
+    ap.add_argument("--exact_layers", default="", help="post-hoc: comma list of layers kept on the EXACT path")
     args = ap.parse_args()
     torch.backends.cuda.matmul.allow_tf32 = True  # every arm, including 'off'
     torch.manual_seed(0)
@@ -190,10 +191,12 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(MODEL, torch_dtype=torch.float16, device_map="cuda",
                                                  attn_implementation="eager").eval()
     patch_model(model)
-    set_states(model, build_states(model, args.arm, args.p, args.rho))
+    exact_layers = tuple(int(x) for x in args.exact_layers.split(",") if x)
+    set_states(model, build_states(model, args.arm, args.p, args.rho, exact_layers))
     t0 = time.time()
     cfg = dict(task=args.task, arm=args.arm, p=None if args.arm in ("off", "EXACT", "NOPE") else args.p,
-               rho=None if args.arm == "off" else args.rho)
+               rho=None if args.arm == "off" else args.rho,
+               **({"exact_layers": list(exact_layers), "posthoc": True} if exact_layers else {}))
     if args.task == "ppl":
         res, preds = run_ppl(model, tok, args), None
     elif args.task == "gsm8k":
@@ -205,7 +208,7 @@ def main():
     with open(f"{ROOT}/results/kf_gate4_{args.task}.jsonl", "a") as f:
         f.write(json.dumps(rec) + "\n")
     if preds is not None:
-        tag = f"{args.arm}_{cfg['p']}_{cfg['rho']}"
+        tag = f"{args.arm}_{cfg['p']}_{cfg['rho']}" + (f"_exact{args.exact_layers.replace(',', '-')}" if exact_layers else "")
         with open(f"{ROOT}/results/kf_gate4_{args.task}_preds_{tag}.jsonl", "w") as f:
             f.writelines(json.dumps(x) + "\n" for x in preds)
 

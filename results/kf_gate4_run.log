@@ -5,3 +5,13 @@
 === 14:56:05 ppl --arm off --ctx 4096
 {"task": "ppl", "arm": "off", "p": null, "rho": null, "ppl": 6.492046356201172, "ctx": 4096, "n_chunks": 83, "tokens": 339885, "total_test_tokens": 341469, "seconds": 70}
 === 14:57:31 ppl --arm off --ctx 4096 --max_chunks 24
+{"task": "ppl", "arm": "off", "p": null, "rho": null, "ppl": 6.412479877471924, "ctx": 4096, "n_chunks": 24, "tokens": 98280, "total_test_tokens": 341469, "seconds": 26}
+=== 14:58:12 ppl --arm EXACT --rho 0.25 --ctx 2048 --max_chunks 48
+{"task": "ppl", "arm": "EXACT", "p": null, "rho": 0.25, "ppl": 6.902824401855469, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 23}
+=== 14:58:53 ppl --arm NOPE --rho 0.25 --ctx 2048 --max_chunks 48
+{"task": "ppl", "arm": "NOPE", "p": null, "rho": 0.25, "ppl": 327.67327880859375, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 39}
+=== 15:01:45 ppl --arm OPT --p 8 --rho 0.25 --ctx 2048 --max_chunks 48
+{"task": "ppl", "arm": "OPT", "p": 8, "rho": 0.25, "ppl": 7.396083354949951, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 128}
+=== 15:05:49 ppl --arm PR-hi --p 8 --rho 0.25 --ctx 2048 --max_chunks 48
+{"task": "ppl", "arm": "PR-hi", "p": 8, "rho": 0.25, "ppl": 236.3018035888672, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 127}
+=== 15:09:10 ppl --arm PR-en --p 8 --rho 0.25 --ctx 2048 --max_chunks 48

@@ -1,3 +1,12 @@
 {"task": "ppl", "arm": "off", "p": null, "rho": null, "ppl": 6.9424848556518555, "ctx": 2048, "n_chunks": 166, "tokens": 339802, "total_test_tokens": 341469, "seconds": 54}
 {"task": "ppl", "arm": "off", "p": null, "rho": null, "ppl": 6.8695149421691895, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 21}
 {"task": "ppl", "arm": "off", "p": null, "rho": null, "ppl": 6.492046356201172, "ctx": 4096, "n_chunks": 83, "tokens": 339885, "total_test_tokens": 341469, "seconds": 70}
+{"task": "ppl", "arm": "off", "p": null, "rho": null, "ppl": 6.412479877471924, "ctx": 4096, "n_chunks": 24, "tokens": 98280, "total_test_tokens": 341469, "seconds": 26}
+{"task": "ppl", "arm": "EXACT", "p": null, "rho": 0.25, "ppl": 6.902824401855469, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 23}
+{"task": "ppl", "arm": "NOPE", "p": null, "rho": 0.25, "ppl": 327.67327880859375, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 39}
+{"task": "ppl", "arm": "OPT", "p": 8, "rho": 0.25, "ppl": 7.396083354949951, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 128}
+{"task": "ppl", "arm": "PR-hi", "p": 8, "rho": 0.25, "ppl": 236.3018035888672, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 127}
+{"task": "ppl", "arm": "OPT", "p": 16, "rho": 0.25, "ppl": 7.074898719787598, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 231}
+{"task": "ppl", "arm": "PR-2n", "p": 16, "rho": 0.25, "ppl": 93.18052673339844, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 231}
+{"task": "ppl", "arm": "OPT", "p": 16, "rho": 0.25, "exact_layers": [0, 1], "posthoc": true, "ppl": 6.997280597686768, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 217}
+{"task": "ppl", "arm": "OPT", "p": 32, "rho": 0.25, "ppl": 6.95621919631958, "ctx": 2048, "n_chunks": 48, "tokens": 98256, "total_test_tokens": 341469, "seconds": 431}
